@@ -814,6 +814,59 @@ def _ecg_findpeaks_WT(signal, sampling_rate=1000):
 
     rpeaks = np.array(rpeaks, dtype='int')
     return rpeaks
+# =============================================================================
+# Shannon energy Kathirvel et al. (2001)
+# =============================================================================
+#
+def _ecg_findpeaks_kathirvel(signal, sampling_rate=1000, window_size=5.0, lfreq = 5, hfreq=15):
+    """
+    From : rpeakdetect: https://github.com/tru-hy/rpeakdetect/
+    Copyright (c) 2013 Jami Pekkanen
+
+    Kathirvel, M. Sabarimalai Manikandan et al. (2011) - An Efficient R-peak Detection Based on New Nonlinear Transformation and First-Order Gaussian Differentiator, Cardiovascular Engineering and Technology, 2, 4, 12 
+
+    """
+    window_size = int(window_size*sampling_rate)
+    
+    # Square (=signal power) of the first difference of the signal
+    decg = np.diff(signal)
+    decg_power = decg**2
+
+    # Robust threshold and normalizator estimation
+    thresholds = []
+    max_powers = []
+    for i in range(int(len(decg_power)/window_size)):
+        sample = slice(i*window_size, (i+1)*window_size)
+        d = decg_power[sample]
+        thresholds.append(0.5*np.std(d))
+        max_powers.append(np.max(d))
+
+    threshold = 0.5*np.std(decg_power)
+    threshold = np.median(thresholds)
+    max_power = np.median(max_powers)
+    decg_power[decg_power < threshold] = 0
+
+    decg_power = decg_power/max_power
+    decg_power[decg_power > 1.0] = 1.0
+    square_decg_power = decg_power**2
+
+#    shannon_energy = -square_decg_power*np.log(square_decg_power)  # This errors
+#    shannon_energy[np.where(np.isfinite(shannon_energy) == False)] = 0.0
+    shannon_energy = -square_decg_power*np.log(square_decg_power.clip(min=1e-6))
+    shannon_energy[np.where(shannon_energy <= 0)] = 0.0
+
+
+    mean_window_len = int(sampling_rate*0.125+1)
+    lp_energy = np.convolve(shannon_energy, [1.0/mean_window_len]*mean_window_len, mode='same')
+    #lp_energy = scipy.signal.filtfilt(*lowpass2, x=shannon_energy)
+
+    lp_energy = scipy.ndimage.gaussian_filter1d(lp_energy, sampling_rate/8.0)
+    lp_energy_diff = np.diff(lp_energy)
+
+    rpeaks = (lp_energy_diff[:-1] > 0) & (lp_energy_diff[1:] < 0)
+    rpeaks = np.flatnonzero(rpeaks)
+
+    return(rpeaks)
 
 # =============================================================================
 # Utilities
