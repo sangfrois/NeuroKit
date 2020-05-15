@@ -7,7 +7,7 @@ from ..signal import signal_interpolate
 
 
 
-def ecg_rate(rpeaks, sampling_rate=1000, desired_length=None):
+def ecg_rate(rpeaks, sampling_rate=1000, desired_length=None, interpolation_method="cubic"):
     """Calculate heart rate from R-peaks.
 
     Parameters
@@ -24,6 +24,8 @@ def ecg_rate(rpeaks, sampling_rate=1000, desired_length=None):
         interpolated between R-peaks over `desired_length` samples. Has no
         effect if a DataFrame is passed in as the `peaks` argument. Defaults to
         None.
+    interpolation_method : str
+        Method used to interpolate the rate between peaks. See `signal_interpolate()`.
 
     Returns
     -------
@@ -64,7 +66,8 @@ def ecg_rate(rpeaks, sampling_rate=1000, desired_length=None):
     rr[0] = np.mean(rr[1:])
     rate = 60 / rr
 
-    if desired_length:
-        rate = signal_interpolate(rpeaks, rate, desired_length=desired_length, method='quadratic')
+    if desired_length is not None:
+        rate = signal_interpolate(rpeaks, rate, desired_length=desired_length,
+                                  method=interpolation_method)
 
     return rate

@@ -9,7 +9,7 @@ from ..signal.signal_formatpeaks import _signal_formatpeaks_sanitize
 from ..signal import signal_power
 from ..complexity import entropy_sample
 from ..complexity import entropy_approximate
-from ..complexity import complexity_dfa
+from ..complexity import fractal_dfa
 
 
 def rsp_rrv(rsp_rate, peaks=None, sampling_rate=1000, show=False):
@@ -48,7 +48,8 @@ def rsp_rrv(rsp_rate, peaks=None, sampling_rate=1000, show=False):
             - "*RRV_SD2SD1*": the ratio between short and long term fluctuations of the breath-to-breath intervals (SD2 divided by SD1).
             - "*RRV_ApEn*": the approximate entropy of RRV, calculated by `entropy_approximate()`.
             - "*RRV_SampEn*": the sample entropy of RRV, calculated by `entropy_sample()`.
-            - "*RRV_DFA*": the fluctuation value generated from Detrended Fluctuation Analysis i.e. the root mean square deviation from the fitted trend of the breath-to-breath intervals. However, this is designed to analyze time series data over several hours.
+            - "*RRV_DFA_1*": the "short-term" fluctuation value generated from Detrended Fluctuation Analysis i.e. the root mean square deviation from the fitted trend of the breath-to-breath intervals. Will only be computed if mora than 160 breath cycles in the signal.
+            - "*RRV_DFA_2*": the long-term fluctuation value. Will only be computed if mora than 640 breath cycles in the signal.
 
     See Also
     --------
@@ -73,12 +74,12 @@ def rsp_rrv(rsp_rate, peaks=None, sampling_rate=1000, show=False):
 
     # Get raw and interpolated R-R intervals
     bbi = np.diff(peaks) / sampling_rate * 1000
-    rsp_period = rsp_rate / 60 * sampling_rate
+    rsp_period = 60 * sampling_rate / rsp_rate
 
     # Get indices
     rrv = {}  # Initialize empty dict
     rrv.update(_rsp_rrv_time(bbi))
-    rrv.update(_rsp_rrv_frequency(rsp_period))
+    rrv.update(_rsp_rrv_frequency(rsp_period, show=show))
     rrv.update(_rsp_rrv_nonlinear(bbi, rsp_period))
 
     rrv = pd.DataFrame.from_dict(rrv, orient='index').T.add_prefix("RRV_")
@@ -129,8 +130,8 @@ def _rsp_rrv_time(bbi):
 
 
 
-def _rsp_rrv_frequency(rsp_period, vlf=(0, 0.04), lf=(0.04, 0.15), hf=(0.15, 0.4), method="welch"):
-    power = signal_power(rsp_period, frequency_band=[vlf, lf, hf], sampling_rate=1000, method=method, max_frequency=0.5)
+def _rsp_rrv_frequency(rsp_period, vlf=(0, 0.04), lf=(0.04, 0.15), hf=(0.15, 0.4), method="welch", show=False):
+    power = signal_power(rsp_period, frequency_band=[vlf, lf, hf], sampling_rate=1000, method=method, max_frequency=0.5, show=show)
     power.columns = ["VLF", "LF", "HF"]
     out = power.to_dict(orient="index")[0]
 
@@ -162,11 +163,14 @@ def _rsp_rrv_nonlinear(bbi, rsp_period):
 #    out["CSI_Modified"] = L ** 2 / T
 
     # Entropy
-    out["ApEn"] = entropy_approximate(bbi, order=2)
-    out["SampEn"] = entropy_sample(bbi, order=2, r=0.2*np.std(bbi, ddof=1))
+    out["ApEn"] = entropy_approximate(bbi, dimension=2)
+    out["SampEn"] = entropy_sample(bbi, dimension=2, r=0.2*np.std(bbi, ddof=1))
 
     # DFA
-    out["DFA"] = complexity_dfa(bbi, order=1)
+    if len(bbi) / 10 > 16:
+        out["DFA_1"] = fractal_dfa(bbi, windows=np.arange(4, 17))
+    if len(bbi) > 65:
+        out["DFA_2"] = fractal_dfa(bbi, windows=np.arange(16, 65))
 
     return out
 
@@ -196,13 +200,13 @@ def _rsp_rrv_formatinput(rsp_rate, peaks, sampling_rate=1000):
 
     if peaks is None:
         try:
-            peaks, _ = _signal_formatpeaks_sanitize(df, desired_length=None)
+            peaks, _ = _signal_formatpeaks_sanitize(df, desired_length=None, key="RSP_Peaks")
         except NameError:
             raise ValueError("NeuroKit error: _rsp_rrv_formatinput():"
                              "Wrong input, we couldn't extract"
                              "respiratory peaks indices.")
     else:
-        peaks, _ = _signal_formatpeaks_sanitize(peaks, desired_length=None)
+        peaks, _ = _signal_formatpeaks_sanitize(peaks, desired_length=None, key="RSP_Peaks")
 
     return rsp_rate, peaks
 
