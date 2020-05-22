@@ -114,6 +114,8 @@ def ecg_findpeaks(ecg_cleaned, sampling_rate=1000, method="neurokit", show=False
         rpeaks = _ecg_findpeaks_kalidas(ecg_cleaned, sampling_rate)
     elif method in ["martinez2003", "martinez"]:
         rpeaks = _ecg_findpeaks_WT(ecg_cleaned, sampling_rate)
+    elif method in ["kathirvel2011", "kathirvel"]:
+        rpeaks = _ecg_findpeaks_kathirvel(ecg_cleaned, sampling_rate)
     else:
         raise ValueError("NeuroKit error: ecg_findpeaks(): 'method' should be "
                          "one of 'neurokit' or 'pamtompkins'.")
@@ -814,20 +816,24 @@ def _ecg_findpeaks_WT(signal, sampling_rate=1000):
 
     rpeaks = np.array(rpeaks, dtype='int')
     return rpeaks
+
+# ==============================================================================
+# Kathirvel, 2011
 # =============================================================================
-# Shannon energy Kathirvel et al. (2001)
-# =============================================================================
-#
-def _ecg_findpeaks_kathirvel(signal, sampling_rate=1000, window_size=5.0, lfreq = 5, hfreq=15):
+
+
+def _ecg_findpeaks_kathirvel(signal, sampling_rate=1000,
+                             lfreq=5, hfreq=15):
     """
     From : rpeakdetect: https://github.com/tru-hy/rpeakdetect/
-    Copyright (c) 2013 Jami Pekkanen
 
-    Kathirvel, M. Sabarimalai Manikandan et al. (2011) - An Efficient R-peak Detection Based on New Nonlinear Transformation and First-Order Gaussian Differentiator, Cardiovascular Engineering and Technology, 2, 4, 12 
+    Kathirvel, M. Sabarimalai Manikandan et al. (2011)
+    An Efficient R-peak Detection Based on New Nonlinear Transformation and
+    First-Order Gaussian Differentiator, Cardiovascular Engineering and Technology, 2, 4, 12
 
     """
-    window_size = int(window_size*sampling_rate)
-    
+    window_size = int(5.0*sampling_rate)
+
     # Square (=signal power) of the first difference of the signal
     decg = np.diff(signal)
     decg_power = decg**2
@@ -840,25 +846,22 @@ def _ecg_findpeaks_kathirvel(signal, sampling_rate=1000, window_size=5.0, lfreq 
         d = decg_power[sample]
         thresholds.append(0.5*np.std(d))
         max_powers.append(np.max(d))
-
+    # initializing threshold and diff signal
     threshold = 0.5*np.std(decg_power)
     threshold = np.median(thresholds)
     max_power = np.median(max_powers)
     decg_power[decg_power < threshold] = 0
 
+    # squaring diff signal
     decg_power = decg_power/max_power
     decg_power[decg_power > 1.0] = 1.0
     square_decg_power = decg_power**2
-
-#    shannon_energy = -square_decg_power*np.log(square_decg_power)  # This errors
-#    shannon_energy[np.where(np.isfinite(shannon_energy) == False)] = 0.0
+    # shannon energy computation
     shannon_energy = -square_decg_power*np.log(square_decg_power.clip(min=1e-6))
     shannon_energy[np.where(shannon_energy <= 0)] = 0.0
 
-
     mean_window_len = int(sampling_rate*0.125+1)
     lp_energy = np.convolve(shannon_energy, [1.0/mean_window_len]*mean_window_len, mode='same')
-    #lp_energy = scipy.signal.filtfilt(*lowpass2, x=shannon_energy)
 
     lp_energy = scipy.ndimage.gaussian_filter1d(lp_energy, sampling_rate/8.0)
     lp_energy_diff = np.diff(lp_energy)
@@ -866,7 +869,8 @@ def _ecg_findpeaks_kathirvel(signal, sampling_rate=1000, window_size=5.0, lfreq 
     rpeaks = (lp_energy_diff[:-1] > 0) & (lp_energy_diff[1:] < 0)
     rpeaks = np.flatnonzero(rpeaks)
 
-    return(rpeaks)
+    return rpeaks
+
 
 # =============================================================================
 # Utilities

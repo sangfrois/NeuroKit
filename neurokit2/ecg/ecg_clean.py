@@ -214,3 +214,51 @@ def _ecg_clean_engzee(ecg_signal, sampling_rate=1000):
     filtered = scipy.signal.lfilter(b, a, ecg_signal)
 
     return filtered
+
+# =============================================================================
+# Abi-Abdallah et al. (2006)
+# =============================================================================
+
+#def _ecg_clean_abi(ecg_signal, sampling_rate=1000):
+    """
+    i)  frequency sub-band decomposition of the contaminated ecg - dwt
+    ii) reconstruct signal construction by merging the detail where QRS have most frequency output
+    """
+    # adjust level with sampling_rate
+    # level =
+    # multi-level discrete wavelet decomposition
+    #coeffs = pywt.wavedecn(ecg_signal, 'sym3', mode='smooth', level=8)
+
+    # hard threshold
+    #coeffs[i] = {k: np.zeros_like(v) for k, v in coeffs[i].items()}
+
+    # reconstruct selected coeffs with inverse
+    #filtered = pywt.waverecn(coeffs, 'sym3')
+
+    #return filtered
+
+# =============================================================================
+# Schmidt et al. 2018
+# =============================================================================
+
+
+#def _ecg_clean_schmidt(ecg_signal, sampling_rate=10000):
+    """
+    i) M1 : median filter 10 ms
+    ii) M2 : define window size and compute max kurtosis value in padding
+    iii) use this threshold to normalize window
+    iiii) resample 250Hz
+    iiiii) bandpass filter [3, 45]
+    """
+    # size 10 ms
+    #size = 10/(1/sampling_rate)
+
+    # i)
+    #median = signal_smooth(ecg_signal, 'median', size=size)
+
+    # ii)
+    #thresh = scipy.stats.moment(median[:(2*sampling_rate)], moment=4,)
+
+    # iii) kurtorsis
+    #for window in median:
+        #if window > threshold:S
