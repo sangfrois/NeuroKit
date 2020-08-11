@@ -64,11 +64,11 @@ Contributing
 .. image:: https://img.shields.io/badge/License-MIT-blue.svg
         :target: https://github.com/neuropsychology/NeuroKit/blob/master/LICENSE
         :alt: License
-        
+
 .. image:: https://github.com/neuropsychology/neurokit/workflows/%E2%9C%A8%20Style/badge.svg?branch=master
         :target: https://github.com/neuropsychology/NeuroKit/actions
         :alt: GitHub CI
-        
+
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
         :target: https://github.com/psf/black
         :alt: Black code
@@ -100,7 +100,7 @@ Documentation
         :alt: PDF
 
 .. image:: https://mybinder.org/badge_logo.svg
-        :target: https://mybinder.org/v2/gh/neuropsychology/NeuroKit/dev?urlpath=lab%2Ftree%2Fdocs%2Fexamples
+        :target: https://mybinder.org/v2/gh/neuropsychology/NeuroKit/master?urlpath=lab%2Ftree%2Fdocs%2Fexamples
         :alt: Binder
 
 .. image:: https://img.shields.io/gitter/room/neuropsychology/NeuroKit.js.svg
@@ -317,7 +317,7 @@ Electrooculography (EOG)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
-    
+
     # Import EOG data
     eog_signal = nk.data("eog_100hz")
 
