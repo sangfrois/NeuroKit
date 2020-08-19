@@ -151,7 +151,7 @@ Performing an entire set of operations with sensible default parameters in one f
 
 # Examples
 
-In this section, we present two examples that illustrate the most common use-cases. The first example represents an event-related paradigm, in which the interest lies in short-term physiological changes related to specific events (see **Figure 1** and **Table 1**). The second example shows how to extract the characteristics of physiological activity during a longer period of time (not necessarily tied to a specific and sudden event). The example datasets are available with the package and can be downloaded using the `data()` function.
+In this section, we present two examples that illustrate the most common use-cases. The first example shows how to extract the characteristics of physiological activity during a certain time interval (not necessarily tied to a specific and sudden event). The second example represents an event-related paradigm, in which the interest lies in shorter-term physiological changes related to specific events (see **Figure 1** and **Table 1**). The example datasets are available with the package and can be downloaded using the `data()` function.
 
 
 ```{r include=TRUE, eval=TRUE, echo = FALSE, out.width="100%", fig.cap="Illustration of the difference between event-related analysis, focusing on activity changes in short windows (the orange rectangles), and interval-related analysis, pertaining to features of large areas, or the whole signal (e.g., the green rectangle)."}
@@ -179,7 +179,41 @@ knitr::kable(table, format="latex", digits = 2, booktabs = TRUE, caption = "Exam
   kableExtra::kable_styling(latex_options = c("hold_position"), font_size=9) %>%
   kableExtra::column_spec(1:2, width = "8cm")
 ```
+## Resting-state Features
 
+The first dataset corresponds to 5 minutes of physiological activity of a single human participant at rest (eyes-closed in a seated position), under no specific set of instructions. It contains three channels (ECG, PPG and RSP) sampled at a frequency of 100Hz.
+
+```{python intervalrelated, include=TRUE, results="hide", eval=TRUE, echo = TRUE}
+# Load the package
+import neurokit2 as nk
+
+# Download the example dataset
+data = nk.data("bio_resting_5min_100hz")
+
+# Process the data
+df, info = nk.bio_process(ecg=data["ECG"],
+                          rsp=data["RSP"],
+                          sampling_rate=100)
+
+# Extract features
+results = nk.bio_analyze(df)
+
+# Show subset of results
+results[["ECG_Rate_Mean", "HRV_RMSSD", "RSP_Rate_Mean", "RSA_P2T_Mean"]]
+```
+
+```{r table2word, eval=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
+# For word
+knitr::kable(py$results[c("ECG_Rate_Mean", "HRV_RMSSD", "RSP_Rate_Mean", "RSA_P2T_Mean")], format="markdown", digits = 3, caption = "Subset of properties characterizing the physiological activity over a period of 5 minutes of resting-state", row.names = FALSE)
+```
+```{r table2pdf, eval=TRUE, message=FALSE, warning=FALSE, echo=FALSE, out.width = "\\textwidth", fig.pos = "!ht", results = "asis"}
+# For PDFs
+kable(py$results[c("ECG_Rate_Mean", "HRV_RMSSD", "RSP_Rate_Mean", "RSA_P2T_Mean")], format="latex", digits = 2, booktabs = TRUE, caption = "Subset of properties characterizing the physiological activity over a period of 5 minutes of resting-state.", linesep="") %>%
+  kableExtra::kable_styling(latex_options = c("hold_position"))
+```
+
+
+This example illustrates a type of physiological analysis that we refer to as interval-related (as opposed to event-related). Interval-related analyses compute features of signal variability and activation patterns over a longer-term period of time (typically minutes). After loading the package and the example dataset, each physiological signal is processed using `bio_process()`. As we want to compute features related to the whole dataset (see **Table 3**), we can directly pass the dataframe to `bio_analyze()`, and compute the appropriate interval-related features accordingly. These include for instance the average heart and breathing rate, as well as indices of heart rate variability (HRV) and respiratory sinus arrhythmia (RSA).*NeuroKit2* allows for the fast creation of standardized and reproducible pipelines to describe this kind of physiological activity, which can be beneficial for a wide variety of applications.
 
 
 ## Event-related Paradigm
@@ -255,53 +289,13 @@ kable(py$results[c("Condition", "ECG_Rate_Mean", "RSP_Rate_Mean", "EDA_Peak_Ampl
 
 
 
-In this example, after loading the package and the example dataset, each physiological signal is processed using `bio_process()`. Stimulus onsets in the photosensor are detected separately with `events_find()`. Once we have the preprocessed signals and the location of events, we can slice the data into segments corresponding to a time window (ranging from -0.1 to 4 seconds) around each stimulus with `epochs_create()`. Finally, relevant features are computed for each epoch (i.e., each stimulus) by passing them to `bio_analyze()`.
+In this example, the steps of the analysis are identical to the previous example, including loading the package, the dataset and processing the data. Furthermore, Stimulus onsets in the photosensor are detected separately with `events_find()`. Once we have the preprocessed signals and the location of events, we can slice the data into segments corresponding to a time window (ranging from -0.1 to 4 seconds) around each stimulus with `epochs_create()`. Finally, relevant features are computed for each epoch (i.e., each stimulus) by passing them to `bio_analyze()`.
 
 The features include for example the changes in rate of ECG and RSP signals (e.g. maximum, minimum and mean rate after stimulus onset, and the time at which they occur), and the peak characteristics of the EDA signal (e.g., occurrence of skin conductance response (SCR), and if SCR is present, its corresponding peak amplitude, time of peak, rise and recovery time). In addition, respiration and cardiac cycle phases are extracted (i.e., the respiration phase - inspiration/expiration - and cardiac phase - systole/diastole - occurring at the onset of event).
 
 This example shows the straightforward process of extracting features of physiological responses. This pipeline can easily scale up to group-level analysis by aggregating the average of features across participants. In addition to streamlining data analyses, *NeuroKit2* aims to provide researchers with an extensive suite of signal features, allowing for precise interpretations in terms of relationship between physiological activity and neurocognitive processes. In this example (see **Table 2**), exposure to negative stimuli, as compared to neutral stimuli, is related to stronger cardiac deceleration, higher skin conductance response, and accelerated breathing rate (note that this descriptive interpretation is given solely for illustrative purposes).
 
 
-
-## Resting-state Features
-
-The second dataset corresponds to 5 minutes of physiological activity of a human participant at rest (eyes-closed in a seated position), under no specific set of instructions. It contains three channels (ECG, PPG and RSP) sampled at a frequency of 100Hz.
-
-```{python intervalrelated, include=TRUE, results="hide", eval=TRUE, echo = TRUE}
-# Load the package
-import neurokit2 as nk
-
-# Download the example dataset
-data = nk.data("bio_resting_5min_100hz")
-
-# Process the data
-df, info = nk.bio_process(ecg=data["ECG"],
-                          rsp=data["RSP"],
-                          sampling_rate=100)
-
-# Extract features
-results = nk.bio_analyze(df)
-
-# Show subset of results
-results[["ECG_Rate_Mean", "HRV_RMSSD", "RSP_Rate_Mean", "RSA_P2T_Mean"]]
-```
-
-```{r table2word, eval=FALSE, message=FALSE, warning=FALSE, echo=FALSE}
-# For word
-knitr::kable(py$results[c("ECG_Rate_Mean", "HRV_RMSSD", "RSP_Rate_Mean", "RSA_P2T_Mean")], format="markdown", digits = 3, caption = "Subset of properties characterizing the physiological activity over a period of 5 minutes of resting-state", row.names = FALSE)
-```
-```{r table2pdf, eval=TRUE, message=FALSE, warning=FALSE, echo=FALSE, out.width = "\\textwidth", fig.pos = "!ht", results = "asis"}
-# For PDFs
-kable(py$results[c("ECG_Rate_Mean", "HRV_RMSSD", "RSP_Rate_Mean", "RSA_P2T_Mean")], format="latex", digits = 2, booktabs = TRUE, caption = "Subset of properties characterizing the physiological activity over a period of 5 minutes of resting-state.", linesep="") %>%
-  kableExtra::kable_styling(latex_options = c("hold_position"))
-```
-
-
-
-In this example, the steps of the analysis are identical to the previous example, including loading the package, the dataset and processing the data. The difference is that there is no epoching, as we want to compute features related to the whole dataset (see **Table 3**). Thus, we can directly pass the dataframe to `bio_analyze()`, which will detect that these are not epochs, and compute the appropriate features accordingly. These include for instance the average heart and breathing rate, as well as indices of heart rate variability (HRV) and respiratory sinus arrhythmia (RSA).
-
-
-This example illustrates a second type of physiological analysis, that we refer to as interval-related (as opposed to event-related). Interval-related analyses compute features of signal variability and activation patterns over a longer-term period of time (typically minutes). *NeuroKit2* allows for the fast creation of standardized and reproducible pipelines to describe this kind of physiological activity, which can be beneficial for a wide variety of applications.
 
 
 
