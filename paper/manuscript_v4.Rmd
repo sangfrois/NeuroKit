@@ -100,7 +100,7 @@ This makes it inconvenient for researchers who might have to learn different sof
 
 <!-- Research gap 2 -->
 Additionally, psychology and neuroscience face a "reproducibility crisis" [@topalidou2015long; @open2015estimating; @milkowski2018replicability; @maizey2019barriers] which has lead to a profound reassessment of research practices (by researchers, publishers, fund agencies, ...).
-The opacity of data processing, such as ill-specified, or incaccessible analysis pipelines, plays a major role in the crisis.
+The opacity of data processing, such as ill-specified, or inaccessible analysis pipelines, plays a major role in the crisis.
 This issue could in part be alleviated by making analyses code an integral part of scientific publications, rather than treating a paper as the sole and most important part of the research  project. However, distributing the analysis script alongside the paper poses new challenge:
 Scripts must be shareable (not always feasible with closed-source and proprietary software or programming languages), accessible (well-documented and organized scripts) and reproducible (which is inherently difficult for software relying on a graphical user interfaces - GUI - in which the manual point-and-click sequence is hard to automate).
 
