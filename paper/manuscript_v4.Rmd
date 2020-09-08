@@ -96,7 +96,7 @@ The latter include low costs (especially compared with other imaging techniques,
 Moreover, the extraction of meaningful information from neurophysiological signals is facilitated by current advances in signal processing algorithms [@clifton2012machine; @roy2019deep].
 Unfortunately, these algorithms are mostly inaccessible to researchers without experience in programming and signal processing.
 Moreover, many software tools for neurophysiological analyses are limited to a single type of signal (for instance, focused on ECG).
-This makes it inconvenient for researchers who might have to learn and concurrently rely on different software to process multimodal data.
+This makes it inconvenient for researchers who might have to learn different software and concurrently rely on a number of them to process and analyze multimodal data.
 
 <!-- Research gap 2 -->
 Additionally, psychology and neuroscience face a "reproducibility crisis" [@topalidou2015long; @open2015estimating; @milkowski2018replicability; @maizey2019barriers] which has lead to a profound reassessment of research practices (by researchers, publishers, fund agencies, ...).
@@ -226,7 +226,7 @@ kable(py$results[c("ECG_Rate_Mean", "HRV_RMSSD", "RSP_Rate_Mean", "RSA_P2T_Mean"
 
 
 Here, the aim was to illustrate a type of physiological analysis that we refer to as interval-related (or resting-state paradigm, as opposed to event-related paradigm). After loading the package and the example dataset, each physiological signal is processed using `bio_process()`.
-As we want to compute features related to the whole dataset (see **Table 2**), we can directly pass the whole dataframe to `bio_analyze()`, and compute the appropriate interval-related features accordingly. Users can also choose the right time interval with which to slice their dataset. 
+As we want to compute features related to the whole dataset (see **Table 2**), we can directly pass the whole dataframe to `bio_analyze()`, and compute the appropriate interval-related features accordingly. Users can also choose the right time interval with which to slice their dataset.
 
 Interval-related analyses compute features of signal variability and activation patterns over such a period of time. These include for instance the average heart and breathing rate, as well as indices of heart rate variability (HRV) and respiratory sinus arrhythmia (RSA).*NeuroKit2* allows for the fast creation of standardized and reproducible pipelines to describe this kind of physiological activity, which can be beneficial for a wide variety of applications.
 
