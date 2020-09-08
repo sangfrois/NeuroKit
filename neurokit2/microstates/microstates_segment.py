@@ -8,7 +8,7 @@ from ..stats.cluster_quality import _cluster_quality_gev
 
 
 def microstates_segment(eeg, n_microstates=4, train="gfp", method='kmod', gfp_method='l1', sampling_rate=None,
-                        standardize_eeg=False, n_runs=10, max_iterations=1000, criterion='gev', random_state=None, **kwargs):
+                        standardize_eeg=False, n_runs=10, max_iterations=1000, criterion='gev', random_state=None, optimize=False, **kwargs):
     """Segment a continuous M/EEG signal into microstates using different clustering algorithms.
 
     Several runs of the clustering algorithm are performed, using different random initializations.
@@ -35,8 +35,9 @@ def microstates_segment(eeg, n_microstates=4, train="gfp", method='kmod', gfp_me
         half the data. See ``microstates_peaks()``.
     method : str
         The algorithm for clustering. Can be one of 'kmeans', the modified k-means algorithm 'kmod' (default),
-        'pca' (Principal Component Analysis), 'ica' (Independent Component Analysis), or
-        'aahc' (Atomize and Agglomerate Hierarchical Clustering) which is more computationally heavy.
+        'kmedoids' (k-centers or k-medoids clustering), 'pca' (Principal Component Analysis),
+        'ica' (Independent Component Analysis), or 'aahc' (Atomize and Agglomerate Hierarchical Clustering)
+        which is more computationally heavy.
     gfp_method : str
         The GFP extraction method, can be either 'l1' (default) or 'l2' to use the L1 or L2 norm.
         See ``nk.eeg_gfp()`` for more details.
@@ -62,6 +63,9 @@ def microstates_segment(eeg, n_microstates=4, train="gfp", method='kmod', gfp_me
         The seed or ``RandomState`` for the random number generator. Defaults
         to ``None``, in which case a different seed is chosen each time this
         function is called.
+    optimize : bool
+        To use a new optimized method in https://www.biorxiv.org/content/10.1101/289850v1.full.pdf.
+        For the k-means modified method. Default to False.
 
     Returns
     -------
@@ -80,7 +84,8 @@ def microstates_segment(eeg, n_microstates=4, train="gfp", method='kmod', gfp_me
     ---------
     >>> import neurokit2 as nk
     >>>
-    >>> eeg = nk.mne_data("filt-0-40_raw").filter(1, 35)
+    >>> eeg = nk.mne_data("filt-0-40_raw").filter(1, 35)  #doctest: +ELLIPSIS
+    Filtering raw data ...
     >>> eeg = nk.eeg_rereference(eeg, 'average')
     >>>
     >>> # Kmeans
@@ -88,10 +93,14 @@ def microstates_segment(eeg, n_microstates=4, train="gfp", method='kmod', gfp_me
     >>> nk.microstates_plot(out_kmeans, gfp=out_kmeans["GFP"][0:500]) #doctest: +ELLIPSIS
     <Figure ...>
     >>>
-    >>> # Modified kmeans
-    >>> out_kmod = nk.microstates_segment(eeg, method='kmod')
+    >>> # Modified kmeans (currently comment out due to memory eror)
+    >>> #out_kmod = nk.microstates_segment(eeg, method='kmod')
     >>> nk.microstates_plot(out_kmod, gfp=out_kmod["GFP"][0:500]) #doctest: +ELLIPSIS
     <Figure ...>
+    >>>
+    >>> # K-medoids
+    >>> out_kmedoids = nk.microstates_segment(eeg, method='kmedoids')
+    >>> nk.microstates_plot(out_kmedoids, gfp=out_kmedoids["GFP"][0:500])
     >>>
     >>> # PCA
     >>> out_pca = nk.microstates_segment(eeg, method='pca', standardize_eeg=True)
@@ -140,6 +149,7 @@ def microstates_segment(eeg, n_microstates=4, train="gfp", method='kmod', gfp_me
 
         # Initialize values
         gev = 0
+        cv = np.inf
         microstates = None
         segmentation = None
         polarity = None
@@ -154,17 +164,28 @@ def microstates_segment(eeg, n_microstates=4, train="gfp", method='kmod', gfp_me
                                          n_clusters=n_microstates,
                                          random_state=random_state[run],
                                          max_iterations=max_iterations,
-                                         threshold=1e-6)
+                                         threshold=1e-6,
+                                         optimize=optimize)
             current_microstates = current_info["clusters_normalized"]
+            current_residual = current_info["residual"]
 
             # Run segmentation on the whole dataset
-            s, p, g = _microstates_segment_runsegmentation(data, current_microstates, gfp)
+            s, p, g, g_all = _microstates_segment_runsegmentation(data, current_microstates, gfp,
+                                                                  n_microstates=n_microstates)
 
-            # If better (i.e., higher GEV), keep this segmentation
-            if g > gev:
-                microstates, segmentation, polarity, gev = current_microstates, s, p, g
-                info = current_info
-
+            if criterion == "gev":
+                # If better (i.e., higher GEV), keep this segmentation
+                if g > gev:
+                    microstates, segmentation, polarity, gev = current_microstates, s, p, g
+                    gev_all = g_all
+                    info = current_info
+            elif criterion == "cv":
+                # If better (i.e., lower CV), keep this segmentation
+                # R2 and residual are proportional, use residual instead of R2
+                if current_residual < cv:
+                    microstates, segmentation, polarity = current_microstates, s, p
+                    cv, gev, gev_all = current_residual, g, g_all
+                    info -= current_info
 
     else:
         # Run clustering algorithm on subset
@@ -175,7 +196,9 @@ def microstates_segment(eeg, n_microstates=4, train="gfp", method='kmod', gfp_me
                                        **kwargs)
 
         # Run segmentation on the whole dataset
-        segmentation, polarity, gev = _microstates_segment_runsegmentation(data, microstates, gfp)
+        segmentation, polarity, gev, gev_all = _microstates_segment_runsegmentation(
+                data, microstates, gfp, n_microstates=n_microstates
+                )
 
     # Reorder
     segmentation, microstates = microstates_classify(segmentation, microstates)
@@ -187,6 +210,7 @@ def microstates_segment(eeg, n_microstates=4, train="gfp", method='kmod', gfp_me
     info = {"Microstates": microstates,
             "Sequence": segmentation,
             "GEV": gev,
+            "GEV_per_microstate": gev_all,
             "GFP": gfp,
             "Polarity": polarity,
             "Info_algorithm": info,
@@ -198,12 +222,13 @@ def microstates_segment(eeg, n_microstates=4, train="gfp", method='kmod', gfp_me
 # =============================================================================
 # Utils
 # =============================================================================
-def _microstates_segment_runsegmentation(data, microstates, gfp):
+def _microstates_segment_runsegmentation(data, microstates, gfp, n_microstates):
     # Find microstate corresponding to each datapoint
     activation = microstates.dot(data)
     segmentation = np.argmax(np.abs(activation), axis=0)
     polarity = np.sign(np.choose(segmentation, activation))
 
     # Get Global Explained Variance (GEV)
-    gev = _cluster_quality_gev(data.T, microstates, segmentation, sd=gfp)
-    return segmentation, polarity, gev
+    gev, gev_all = _cluster_quality_gev(data.T, microstates, segmentation, sd=gfp,
+                                        n_clusters=n_microstates)
+    return segmentation, polarity, gev, gev_all

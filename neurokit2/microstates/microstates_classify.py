@@ -26,7 +26,8 @@ def microstates_classify(segmentation, microstates):
     ------------
     >>> import neurokit2 as nk
     >>>
-    >>> eeg = nk.mne_data("filt-0-40_raw").filter(1, 35)
+    >>> eeg = nk.mne_data("filt-0-40_raw").filter(1, 35)  #doctest: +ELLIPSIS
+    Filtering raw data ...
     >>> eeg = nk.eeg_rereference(eeg, 'average')
     >>>
     >>> # Original order
@@ -35,7 +36,8 @@ def microstates_classify(segmentation, microstates):
     >>>
     >>> # Reorder
     >>> out = nk.microstates_classify(out)
-    >>> nk.microstates_plot(out, gfp=out["GFP"][0:100])
+    >>> nk.microstates_plot(out, gfp=out["GFP"][0:100])  #doctest: +ELLIPSIS
+    <Figure ...>
 
     """
     # Reorder
