@@ -1,0 +1,3 @@
+https://physionet.org/static/published-projects/fantasia/fantasia-database-1.0.0.zip
+https://storage.googleapis.com/mitdb-1.0.0.physionet.org/mit-bih-arrhythmia-database-1.0.0.zip
+https://physionet.org/static/published-projects/nsrdb/mit-bih-normal-sinus-rhythm-database-1.0.0.zip
